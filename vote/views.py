@@ -12,6 +12,24 @@ from .models          import (
      Vote
  )
 
+class ArtworkView(View):
+    def get(self, request, category_id):
+
+        if Artwork.objects.filter(category_id=category_id).exists():
+            artworks = Artwork.objects.filter(category_id=category_id)
+            print(artworks)
+            category_name = Category.objects.get(id=category_id).name
+            artwork_attributes = [
+                {
+                    'artwork_id': artwork.id,
+                    'image_urls': [picture.image_url for picture in Picture.objects.filter(artwork_id=artwork.id)],
+                    'category_id': artwork.category_id
+                } for artwork in artworks
+            ]
+
+            return JsonResponse({category_name: artwork_attributes}, status = 200)
+        return JsonResponse({'message': 'ARTWORK_DOES_NOT_EXIST'}, status = 404)
+
 class ResultView(View):
     def get(self, request, category_id):
         artworks = (
