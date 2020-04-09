@@ -1,7 +1,12 @@
-from django.urls    import path
-from .views         import ArtworkView, ResultView
+from .views      import (
+    VoteView,
+    ResultView,
+    ArtworkView,
+)
 
 urlpatterns = [
-    path('/artwork/<int:category_id>', ArtworkView.as_view())
-    path('/result/<int:category_id>', ResultView.as_view()),
+    path('vote', VoteView.as_view()),
+    path('vote/<int:artwork_id>', VoteView.as_view()),
+    path('result/<int:category_id>', ResultView.as_view()),
+    path('artwork/<int:category_id>', ArtworkView.as_view())
 ]
