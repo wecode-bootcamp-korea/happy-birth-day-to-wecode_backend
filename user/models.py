@@ -1,6 +1,6 @@
 from django.db import models
 
-class Users(models.Model):
+class User(models.Model):
     code = models.CharField(max_length=300)
 
     class Meta:
