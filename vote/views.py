@@ -14,6 +14,7 @@ from .models          import (
     Vote
  )
 
+
 THREE_POEM_COUNT = 5
 POEM_COUNT = 1
 ART_COUNT = 1
@@ -74,6 +75,25 @@ class VoteView(View):
             vote = Vote.objects.filter(user = user).aggregate(Count('category_id'))
         return JsonResponse({'message':'VOTE_YET'}, status = 401)
 
+class ArtworkView(View):
+    def get(self, request, category_id):
+
+        if Artwork.objects.filter(category_id=category_id).exists():
+            artworks = Artwork.objects.filter(category_id=category_id)
+            print(artworks)
+            category_name = Category.objects.get(id=category_id).name
+            artwork_attributes = [
+                {
+                    'artwork_id': artwork.id,
+                    'image_urls': [picture.image_url for picture in Picture.objects.filter(artwork_id=artwork.id)],
+                    'category_id': artwork.category_id
+                } for artwork in artworks
+            ]
+
+            return JsonResponse({category_name: artwork_attributes}, status = 200)
+        return JsonResponse({'message': 'ARTWORK_DOES_NOT_EXIST'}, status = 404)
+
+
 class ResultView(View):
     def get(self, request, category_id):
         artworks = (
@@ -97,20 +117,3 @@ class ResultView(View):
             }for artwork in artworks]
 
         return JsonResponse({"results": result_list}, status = 200)
-
-class ArtworkView(View):
-    def get(self, request, category_id):
-        
-        if Artwork.objects.filter(category_id=category_id).exists():
-            artworks = Artwork.objects.filter(category_id=category_id)
-            print(artworks)
-            category_name = Category.objects.get(id=category_id).name
-            artwork_attributes = [
-                {
-                    'artwork_id': artwork.id,
-                    'image_urls': [picture.image_url for picture in Picture.objects.filter(artwork_id=artwork.id)],
-                    'category_id': artwork.category_id
-                } for artwork in artworks
-            ]
-            return JsonResponse({category_name: artwork_attributes}, status = 200)
-        return JsonResponse({'message': 'ARTWORK_DOES_NOT_EXIST'}, status = 404)
