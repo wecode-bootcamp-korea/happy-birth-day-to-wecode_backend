@@ -84,6 +84,8 @@ class ArtworkView(View):
             category_name = Category.objects.get(id=category_id).name
             artwork_attributes = [
                 {
+                    'artist'    : artwork.artist,
+                    'batch'     : artwork.batch,
                     'artwork_id': artwork.id,
                     'image_urls': [picture.image_url for picture in Picture.objects.filter(artwork_id=artwork.id)],
                     'category_id': artwork.category_id
@@ -92,7 +94,6 @@ class ArtworkView(View):
 
             return JsonResponse({category_name: artwork_attributes}, status = 200)
         return JsonResponse({'message': 'ARTWORK_DOES_NOT_EXIST'}, status = 404)
-
 
 class ResultView(View):
     def get(self, request, category_id):
@@ -117,3 +118,18 @@ class ResultView(View):
             }for artwork in artworks]
 
         return JsonResponse({"results": result_list}, status = 200)
+
+class MyVoteNumView(View):
+    def get(self, request, category_id):
+        cookie_code = request.COOKIES.get('code', None)
+
+        if category_id > Category.objects.count():
+            return JsonResponse({'message': 'CATEGORY_DOES_NOT_EXIST'}, status = 400)
+
+        if cookie_code:
+            category_name = Category.objects.get(id=category_id).name
+            user_id = User.objects.get(code=cookie_code).id
+            num_my_votes = Vote.objects.filter(user_id=user_id, category_id=category_id).count()
+            return JsonResponse({'category': category_name, 'vote_count':num_my_votes}, status = 200)
+
+        return JsonResponse({'message': 'USER_DOES_NOT_EXIST'}, status = 400)
