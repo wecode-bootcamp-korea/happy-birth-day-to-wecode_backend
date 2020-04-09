@@ -26,6 +26,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'corsheaders',
     'vote',
+    'user',
+    'artwork'
 ]
 
 MIDDLEWARE = [
