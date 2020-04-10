@@ -19,47 +19,47 @@ THREE_POEM_COUNT = 5
 POEM_COUNT = 1
 ART_COUNT = 1
 
-def save_vote(self, cookie, data):
-    if Vote.objects.filter(user = User.objects.get(code=cookie), artwork_id = data['artwork']).exists():
+def save_vote(self, code, data):
+    if Vote.objects.filter(user = User.objects.get(code=code), artwork_id = data['artwork']).exists():
         return JsonResponse({'message':'ALREADY_VOTED'},status=409)
     Vote(
-        user = User.objects.get(code = cookie),
+        user = User.objects.get(code = code),
         artwork_id = data['artwork'],
         category_id = data['category']
     ).save()
-    response = HttpResponse(status = 200)
+    response = JsonResponse({'code': code}, status = 200)
     return response
 
 class VoteView(View):
     def post(self, request):
         try:
-            cookie = request.COOKIES.get('code', None)
+            code = request.headers.get('code', None)
             data   = json.loads(request.body)
             data['category'] = Artwork.objects.get(id = data['artwork']).category.id
-            if cookie:
-                user  = User.objects.get(code = cookie)
+            if code:
+                user  = User.objects.get(code = code)
                 count = Vote.objects.filter(user = user, category = data['category']).count()+1
+
                 if data['category'] == 1:
                     if(ART_COUNT >= count):
-                       return  save_vote(self, cookie, data)
+                       return  save_vote(self, code, data)
 
                     return JsonResponse({'message':'MAX_VOTE'}, status = 400)
 
                 if data['category'] == 2: 
                     if(THREE_POEM_COUNT >= count):
-                        return  save_vote(self, cookie, data)
+                        return  save_vote(self, code, data)
 
                     return JsonResponse({'message':'MAX_VOTE'}, status = 400)
 
                 if data['category'] == 3:
                     if(POEM_COUNT >= count):
-                        return save_vote(self, cookie, data)
+                        return save_vote(self, code, data)
                     return JsonResponse({'message':'MAX_VOTE'}, status = 400)
 
-            cookie = uuid.uuid4()
-            User.objects.create(code = cookie)
-            response = save_vote(self, cookie, data)
-            response.set_cookie('code', cookie)
+            code = uuid.uuid4()
+            User.objects.create(code = code)
+            response = save_vote(self, code, data)
 
             return response
 
@@ -68,12 +68,19 @@ class VoteView(View):
         except Artwork.DoesNotExist:
             return JsonResponse({'message':'INVALID_ARTWORK'}, status = 401)
 
-    def get(self, request):
-        cookie = request.COOKIES.get('code', None)
-        user = User.objects.get(code = cookie)
-        if cookie:
-            vote = Vote.objects.filter(user = user).aggregate(Count('category_id'))
-        return JsonResponse({'message':'VOTE_YET'}, status = 401)
+    def get(self, request, category_id):
+        code = request.headers.get('code', None)
+
+        if category_id > Category.objects.count():
+            return JsonResponse({'message': 'CATEGORY_DOES_NOT_EXIST'}, status = 400)
+
+        if code:
+            category_name = Category.objects.get(id=category_id).name
+            user = User.objects.get(code=code)
+            num_my_votes = Vote.objects.filter(user_id = user, category_id = category_id).count()
+            return JsonResponse({'category': category_name, 'vote_count':num_my_votes}, status = 200)
+
+        return JsonResponse({'message': 'USER_DOES_NOT_EXIST'}, status = 400)
 
 class ArtworkView(View):
     def get(self, request, category_id):
@@ -119,17 +126,3 @@ class ResultView(View):
 
         return JsonResponse({"results": result_list}, status = 200)
 
-class MyVoteNumView(View):
-    def get(self, request, category_id):
-        cookie_code = request.COOKIES.get('code', None)
-
-        if category_id > Category.objects.count():
-            return JsonResponse({'message': 'CATEGORY_DOES_NOT_EXIST'}, status = 400)
-
-        if cookie_code:
-            category_name = Category.objects.get(id=category_id).name
-            user_id = User.objects.get(code=cookie_code).id
-            num_my_votes = Vote.objects.filter(user_id=user_id, category_id=category_id).count()
-            return JsonResponse({'category': category_name, 'vote_count':num_my_votes}, status = 200)
-
-        return JsonResponse({'message': 'USER_DOES_NOT_EXIST'}, status = 400)
